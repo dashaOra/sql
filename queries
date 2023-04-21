@@ -1,0 +1,106 @@
+--Генерация календаря от первого дня текущего месяца до последнего дня
+
+select beg_date + level - 1 as int_days
+from   (select trunc(sysdate,'mm') beg_date,
+               trunc(LAST_DAY(sysdate)) end_date
+        from   dual)
+connect by level <= end_date - beg_date + 1
+;
+
+-- Разбить строку на строки по разделителю
+
+with 
+b as (select '15,1,77,13,79' str from dual), 
+a as(
+select b.str,
+instr(b.str, ',', 1, level) str2,
+case level
+  when 1 then 1
+  else instr(b.str, ',', 1, level - 1) + 1
+end str1
+from b
+connect by nvl(instr(b.str, ',', 1, level), 0) != 0
+
+)
+
+select substr(str, str1,  str2-str1) num1
+from a
+;
+
+-- Удаление дубликатов
+
+delete
+from tbl1 t
+where rowid not in (
+        select min(rowid)
+        from tbl1
+        group by fld1
+      );
+
+delete
+from tbl1
+where rowid in (
+                select rwd
+                from (
+                select fld1, rank() over(partition by fld1 order by cnt_row) rnk, rowid rwd
+                from (
+                select t.*, row_number() over(order by fld1) cnt_row
+                from tbl1 t)
+                     )
+                where rnk > 1
+                )
+;
+
+
+-- получить empno с самой высокой зарплатой. 
+
+with max_salary as (
+    select 
+        max(salary) max_salary
+    from 
+        salaries
+    )
+select 
+    s.empno
+from 
+    salaries s
+join 
+    max_salary ms on s.salary = ms.max_salary
+
+--Альтернативное решение с использованием RANK():
+
+with sal_rank as 
+  (select 
+    empno, 
+    rank() over(order by salary desc) rnk
+  from 
+    salaries)
+select 
+  empno
+from
+  sal_rank
+where 
+  rnk = 1;
+  
+  
+--нарастающим итогом рассчитать суммы продаж
+-- каждый месяц каждого года с разбивкой по пользователю  
+  
+with sales as(
+select extract(year from date_pay) year,
+extract(month from date_pay) month, 
+customer_id, sum(sum_pay)sum_pay
+from sale
+where extract(year from date_pay) > 2022
+group by extract(year from date_pay),
+extract(month from date_pay), 
+customer_id)
+
+select year, month, customer_id,
+sum(sum_pay) 
+from sales
+group by rollup(customer_id,year, month)
+order by customer_id,year, month  
+
+;
+
