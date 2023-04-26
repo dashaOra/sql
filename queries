@@ -104,3 +104,37 @@ order by customer_id,year, month
 
 ;
 
+
+-- подсчет количества номеров в поле, разделенных запятой
+-- по месяцам нарастающтм итогом
+
+select month, id, sum(cnt)over(partition by id order by month) sum_cnt
+from (
+select extract(month from date) month,   id, count(*) cnt
+from numbers t, ids c
+where '%,'||t.numbers|| ',%' like '%,'|| c.id || ',%'
+group by extract(month from date), id
+order by extract(month from date), id
+)
+order by month, id
+
+
+-- количество букв в слове
+select/* level,
+substr('колобок', level, 1) let,
+case 
+  when substr('колобок', level, 1) = 'о' then 1
+  else 0
+    end cnt_let*/
+  sum(
+  case 
+    when substr('колобок', level, 1) = 'о' then 1
+    else 0
+     end)  sum_let
+  
+from dual
+connect by level <= length('колобок')
+
+;
+
+ select length('колобок') - length(replace('колобок', 'о')) sum_let from dual
