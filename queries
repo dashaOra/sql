@@ -138,3 +138,12 @@ connect by level <= length('колобок')
 ;
 
  select length('колобок') - length(replace('колобок', 'о')) sum_let from dual
+ 
+-- иерархический запрос построения дерева сотрудников
+-- от начальника к подчиненным
+select id,
+lpad(' ', (level-1) *5, ' ') || fio fio,
+statusname
+from employee t
+connect by prior id = bossid
+start with bossid is null
